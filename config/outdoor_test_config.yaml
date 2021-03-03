@@ -33,7 +33,7 @@ extrinsic_translation: !!opencv-matrix
   rows: 3
   cols: 1
   dt: d
-  data: [-2.4, 0, 0.7]
+  data: [-0.0378142, -0.013507, -0.0697852]
 
 # optimization options
 run_optimization: 1

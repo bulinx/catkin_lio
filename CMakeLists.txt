@@ -5,6 +5,8 @@ project(lio)
 # add_compile_options(-std=c++14)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_BUILD_TYPE "Release")
+set(CMAKE_BUILD_TYPE Debug)  
+
 #set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g")
 
 ## Find catkin macros and libraries
@@ -227,6 +229,12 @@ add_library(${PROJECT_NAME}-imu-processor
   src/imu_processor/ImuInitializer.cc
   src/imu_processor/MeasurementManager.cc
 )
+#set(LIB_GOMP_DIR /usr/lib/x86_64-linux-gnu)   #//LIB_OPENCV_IMGPROC_DIR是变量名，可以随意写
+#add_library(libgomp SHARED IMPORTED)
+#set_target_properties(libgomp PROPERTIES IMPORTED_LOCATION ${LIB_GOMP_DIR}/libgomp.so.1)
+
+
+
 
 # TODO: separate these two libs
 # target_link_libraries(${PROJECT_NAME}-imu-processor
@@ -331,7 +339,7 @@ add_dependencies(${PROJECT_NAME}_save_bag_to_pcd
 target_link_libraries(${PROJECT_NAME}_save_bag_to_pcd
   ${point_processor_EXT_LIBS}
 )
-
+#target_link_libraries(main  libgomp.so )
 #############
 ## Install ##
 #############

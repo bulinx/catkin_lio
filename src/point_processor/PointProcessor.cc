@@ -124,7 +124,8 @@ void PointProcessor::SetupRos(ros::NodeHandle &nh) {
 
   // subscribe to raw cloud topic
   sub_raw_points_ = nh.subscribe<sensor_msgs::PointCloud2>
-      ("/velodyne_points", 2, &PointProcessor::PointCloudHandler, this);
+     ("/velodyne_points", 2, &PointProcessor::PointCloudHandler, this);
+     //("/kitti/velo/pointcloud", 2, &PointProcessor::PointCloudHandler, this);
 
   // advertise scan registration topics
   pub_full_cloud_ = nh.advertise<sensor_msgs::PointCloud2>("/full_cloud", 2);

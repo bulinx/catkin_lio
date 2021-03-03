@@ -61,7 +61,12 @@
 //     Robotics: Science and Systems Conference (RSS). Berkeley, CA, July 2014.
 
 #include "point_processor/PointOdometry.h"
+//#include <iostream>
+//#include <time.h>
+//#include <chrono>
 
+//clock_t start, finish;
+//double duration;
 namespace lio {
 
 PointOdometry::PointOdometry(float scan_period, int io_ratio, size_t num_max_iterations)
@@ -144,6 +149,9 @@ void PointOdometry::SetupRos(ros::NodeHandle &nh) {
 //      ("/imu_trans", 5, &LaserOdometry::ImuTransHandler, this);
 
 }
+//finish = clock();
+//duration = (double)(finish - start) / CLOCKS_PER_SEC;
+//cout<<"The run time is:"<<duration<<endl;
 
 void PointOdometry::LaserCloudSharpHandler(const sensor_msgs::PointCloud2ConstPtr &corner_points_sharp_msg) {
   time_corner_points_sharp_ = corner_points_sharp_msg->header.stamp;
@@ -771,5 +779,9 @@ void PointOdometry::PublishResults() {
     }
   }
 }
+
+
+
+
 
 }

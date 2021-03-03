@@ -404,6 +404,7 @@ void Estimator::ProcessImu(double dt,
   gyr_last_ = angular_velocity;
 
   if (stage_flag_ == INITED) {
+    			// 将IMU预积分的直接结果输出成odom信息显示出来
     predict_odom_.header.stamp = header.stamp;
     predict_odom_.header.seq += 1;
     Eigen::Quaterniond quat(Rs_.last());
@@ -432,7 +433,8 @@ void Estimator::ProcessLaserOdom(const Transform &transform_in, const std_msgs::
   ROS_DEBUG(">>>>>>> new laser odom coming <<<<<<<");
 
   ++laser_odom_recv_count_;
-
+// 在没有初始化的时候，隔一帧用一次，用于后面的初始化，
+		// TODO 应该是为了运动的范围大一点便于初始化？？
   if (stage_flag_ != INITED
       && laser_odom_recv_count_ % estimator_config_.init_window_factor != 0) { /// better for initialization
     return;
@@ -444,6 +446,8 @@ void Estimator::ProcessLaserOdom(const Transform &transform_in, const std_msgs::
   // LaserFrame laser_frame(laser, header.stamp.toSec());
 
   LaserTransform laser_transform(header.stamp.toSec(), transform_in);
+		// 如果每次都是使用的transform_aft_mapped_作为R t初始值，那么就是代表lidar到map的变换
+		// 这里把预积分计算的R，t和map优化的R，t都存储进来，用于后面非线性优化
 
   laser_transform.pre_integration = tmp_pre_integration_;
   pre_integrations_.push(tmp_pre_integration_);
@@ -478,7 +482,7 @@ void Estimator::ProcessLaserOdom(const Transform &transform_in, const std_msgs::
     corner_stack_.push(boost::make_shared<PointCloud>(*laser_cloud_corner_stack_downsampled_));
     size_corner_stack_.push(laser_cloud_corner_stack_downsampled_->size());
   }
-
+// 存储全部的点云数据，优化完位置会发布出去
   full_stack_.push(boost::make_shared<PointCloud>(*full_cloud_));
 
   opt_surf_stack_.push(surf_stack_.last());
@@ -486,9 +490,11 @@ void Estimator::ProcessLaserOdom(const Transform &transform_in, const std_msgs::
 
   opt_matP_.push(matP_.cast<double>());
   ///< optimization buffers
-
+	// 开始优化IMU的Rt和Lidar的Rt
   if (estimator_config_.run_optimization) {
     switch (stage_flag_) {
+      	// TODO 前几次都是NOT_INITED，什么时候会初始化完成？
+      // 解释：运行成功后Initialization函数
       case NOT_INITED: {
 
         {
@@ -504,6 +510,7 @@ void Estimator::ProcessLaserOdom(const Transform &transform_in, const std_msgs::
         bool init_result = false;
         if (cir_buf_count_ == estimator_config_.window_size) {
           tic_toc_.Tic();
+						// 如果不用imu数据
 
           if (!estimator_config_.imu_factor) {
             init_result = true;
@@ -511,19 +518,26 @@ void Estimator::ProcessLaserOdom(const Transform &transform_in, const std_msgs::
             for (size_t i = 0; i < estimator_config_.window_size + 1;
                  ++i) {
               const Transform &trans_li = all_laser_transforms_[i].second.transform;
+              // trans_li代表Lidar在世界坐标系下的位姿，乘Transform_lidar2Imu得到IMU在世界坐标系下的位姿
               Transform trans_bi = trans_li * transform_lb_;
               Ps_[i] = trans_bi.pos.template cast<double>();
               Rs_[i] = trans_bi.rot.normalized().toRotationMatrix().template cast<double>();
             }
           } else {
-
+             // 如果有imu，使用IMU数据
             if (extrinsic_stage_ == 2) {
               // TODO: move before initialization
+              /*extrinsic_stage_外部初始化为2,2就是完全不必给imu和lidar的起始位置，
+							根据之前积累的all_laser_transforms_可以直接估计出来两者之间的变换。估计出来一个初始值，
+							然后就把extrinsic_stage_变成1的模式，也就是有一个初始值，然后围绕初始值做优化*/
+
+              // 这个transform_lb_是外部先给定一个transform，然后利用前面的lidar transform和IMu预积分优化这个transform
               bool extrinsic_result = ImuInitializer::EstimateExtrinsicRotation(all_laser_transforms_, transform_lb_);
               LOG(INFO) << ">>>>>>> extrinsic calibration"
                         << (extrinsic_result ? " successful"
                                              : " failed")
                         << " <<<<<<<";
+                        // 如果初始化成功，获得了IMU和Lidar的外在参数，就更改状态
               if (extrinsic_result) {
                 extrinsic_stage_ = 1;
                 DLOG(INFO) << "change extrinsic stage to 1";
@@ -658,7 +672,8 @@ void Estimator::ProcessLaserOdom(const Transform &transform_in, const std_msgs::
               transform_body_es.rot = q_s;
               transform_body_es.pos = s * transform_body_es.pos;
             }
-
+               // 将IMU求得的变换 变成Lidar的变换
+							// 这里这个公式很好理解      假设P是在Lidar坐标系下的   要先转换到imu坐标系   然后左乘imu的估计变换   再左乘imu到lidar的变换
             transform_es_ = transform_lb_ * transform_body_es * transform_lb_.inverse();
             DLOG(INFO) << "time diff: " << time_e - time_s;
             DLOG(INFO) << "transform diff: " << transform_es_;
@@ -2429,6 +2444,15 @@ void Estimator::SolveOptimization() {
       laser_predict_trans_.stamp_ = Headers_.last().stamp;
       tf_broadcaster_est_.sendTransform(laser_predict_trans_);
     }
+
+    		     DLOG(INFO)  << "quaternion3 x: " << transform_lb.rot.x() << endl;
+             DLOG(INFO)  << "quaternion3 y: " << transform_lb.rot.y() << endl;
+             DLOG(INFO)  << "quaternion3 z: " << transform_lb.rot.z() << endl;
+             DLOG(INFO)  << "quaternion3 w: " << transform_lb.rot.w() << endl;
+			       DLOG(INFO)  << "position x: " << transform_lb.pos.x()<< endl;
+             DLOG(INFO)  << "position y: " << transform_lb.pos.y()<< endl;
+             DLOG(INFO)  << "position z: " << transform_lb.pos.z() << endl;
+      
 
   }
 

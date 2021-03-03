@@ -4,41 +4,48 @@ min_plane_dis: 0.2
 
 min_match_sq_dis: 1.0
 
+# 体素网格叶子大小
 corner_filter_size: 0.2
 surf_filter_size: 0.4
 map_filter_size: 0.6
 
-# window sizes
+# 优化 window sizes
+ 
 window_size: 12 #7
-opt_window_size: 7 #5
+opt_window_size: 7 #5  
 
-init_window_factor: 2
+init_window_factor: 2      #使本地初始化窗口更长的因子
 
-# Extrinsic parameter between IMU and Camera (adapted from VINS-mono)
+# Extrinsic parameter between IMU and lidar (adapted from VINS-mono)
 estimate_extrinsic: 2   # 0  Have an accurate extrinsic parameters. We will trust the following imu^R_cam, imu^T_cam, don't change it.
                         # 1  Have an initial guess about extrinsic parameters. We will optimize around your initial guess.
                         # 2  Don't know anything about extrinsic parameters. You don't need to give R,T. We will try to calibrate it. Do some rotation movement at beginning.
+                        # 0具有准确的外部参数。我们将信任以下imu ^ R_cam，imu ^ T_cam，请勿更改。
+                        # 1对外部参数进行初步猜测。我们将围绕您的最初猜测进行优化。
+                        # 2对外部参数一无​​所知。您不需要给出R，T。我们将尝试对其进行校准。开始时做一些旋转运动。
+
+                        
 opt_extrinsic: 1
 
 extrinsic_rotation: !!opencv-matrix
   rows: 3
   cols: 3
   dt: d
-  data: [1,  0,  0,
-         0,  1,  0,
-         0,  0,  1]
+  data: [9.999976e-01, 7.553071e-04, -2.035826e-03,
+        -7.854027e-04, 9.998898e-01, -1.482298e-02,
+         2.024406e-03, 1.482454e-02, 9.998881e-01]
 
 #Translation from imu frame to laser frame, laser^T_imu
 extrinsic_translation: !!opencv-matrix
   rows: 3
   cols: 1
   dt: d
-  data: [0.0, 0.0, -0.081939]
+  data: [-8.086759e-01, 3.195559e-01, -7.997231e-01]
 
 # optimization options
 run_optimization: 1
 
-update_laser_imu: 1
+update_laser_imu: 1   #调试，更新优化状态
 gravity_fix: 1
 
 plane_projection_factor: 0
@@ -55,16 +62,16 @@ odom_io: 2
 pcl_viewer: 0
 
 # IMU noises
-acc_n: 0.2
-gyr_n: 0.02
-acc_w: 0.0002
-gyr_w: 2.0e-5
-g_norm: 9.805
+acc_n: 2.00e-01
+gyr_n: 7.04e-03
+acc_w: 5.08e-03
+gyr_w: 1.48e-04
+g_norm: 9.100
 
 # lidar deskew
 enable_deskew: 1
-cutoff_deskew: 0
+cutoff_deskew: 0   #使用校正后的点云数据（如KITTI）时，请关闭偏斜校正。  
 
 keep_features: 1
 
-msg_time_delay: 0.05
+msg_time_delay: 0.05   #对于典型的Velodyne数据，激光雷达和IMU之间的时间偏移将IMU缓冲到点云的中间时间戳。
